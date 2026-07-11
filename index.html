@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wanderly Travel — Plan your next trip</title>
+  <meta name="description" content="Minimal travel agency site with a Claude-powered travel agent assistant." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="#top">✈️ Wanderly</a>
+      <nav>
+        <a href="#destinations">Destinations</a>
+        <a href="#about">About</a>
+        <a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="top" class="hero">
+      <div class="wrap">
+        <h1>Let's plan your next getaway.</h1>
+        <p>Tell our AI travel agent your budget, dates, and vibe — get real destination picks,
+          an itinerary, and flight options in minutes.</p>
+        <button class="cta" id="open-agent-cta">Talk to the Travel Agent →</button>
+      </div>
+    </section>
+
+    <section id="destinations" class="destinations">
+      <div class="wrap">
+        <h2>Popular right now</h2>
+        <div class="card-grid">
+          <article class="card">
+            <h3>Lisbon, Portugal</h3>
+            <p>Coastal light, pastel streets, and some of Europe's best food for the price.</p>
+          </article>
+          <article class="card">
+            <h3>Kyoto, Japan</h3>
+            <p>Temples, quiet gardens, and a rail network that makes day trips effortless.</p>
+          </article>
+          <article class="card">
+            <h3>Oaxaca, Mexico</h3>
+            <p>Markets, mezcal, and mountain towns a short flight from most US hubs.</p>
+          </article>
+          <article class="card">
+            <h3>Queenstown, New Zealand</h3>
+            <p>Adventure sports by day, lakeside calm by night.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="about">
+      <div class="wrap">
+        <h2>How it works</h2>
+        <p>Click "Talk to the Travel Agent" and answer a few quick questions — departure city,
+          budget, dates, who's going, and what you're into. Our assistant (running on Claude)
+          recommends destinations, sketches an itinerary, and suggests flight options, right
+          in a floating terminal window.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer id="contact" class="site-footer">
+    <div class="wrap">
+      <p>Wanderly Travel — a demo site. No bookings are actually made here.</p>
+    </div>
+  </footer>
+
+  <button id="agent-toggle" class="agent-toggle" aria-label="Open travel agent" title="Open travel agent">
+    <span class="agent-toggle-icon">✈️</span>
+  </button>
+
+  <section id="agent-window" class="agent-window hidden" aria-hidden="true">
+    <div class="agent-window-header">
+      <span class="agent-window-title">claude@travel-agent — 80x24</span>
+      <button id="agent-close" class="agent-window-close" aria-label="Close">✕</button>
+    </div>
+    <div id="agent-body" class="agent-window-body" tabindex="0"></div>
+  </section>
+
+  <script src="js/widget.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
