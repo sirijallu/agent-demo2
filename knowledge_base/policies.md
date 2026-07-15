@@ -7,14 +7,14 @@ policies for a fictional agency, not real terms of service.
 
 ### Free cancellation window
 
-All bookings made through Wanderly can be cancelled free of charge within 24
+All bookings made through Wanderly can be cancelled free of charge within 12
 hours of booking, as long as the departure date is at least 7 days away. The
 full amount, including taxes and fees, is refunded to the original payment
 method.
 
 ### Standard cancellation tiers
 
-After the 24-hour window, cancellation fees depend on how far in advance of
+After the 12-hour window, cancellation fees depend on how far in advance of
 departure you cancel:
 
 - 60 or more days before departure: 90% refund of the trip cost.
