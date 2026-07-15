@@ -115,6 +115,20 @@ def stream_plan(client: anthropic.Anthropic, prompt: str):
     yield "\n\n(Stopped after reaching the policy-search limit for one request.)"
 
 
+@app.route("/api/plan", methods=["GET"])
+def health():
+    """Report which required env vars are configured (presence only)."""
+    import json
+
+    keys = ["ANTHROPIC_API_KEY", "VOYAGE_API_KEY", "BLOB_READ_WRITE_TOKEN"]
+    status = {
+        k: bool(os.environ.get(k, "").strip())
+        and not os.environ.get(k, "").startswith("your-")
+        for k in keys
+    }
+    return Response(json.dumps(status), mimetype="application/json")
+
+
 @app.route("/api/plan", methods=["POST"])
 def plan():
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
