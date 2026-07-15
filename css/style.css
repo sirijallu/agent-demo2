@@ -244,6 +244,41 @@ h1, h2, h3, .brand {
 .cw-input:focus { border-color: var(--clay); box-shadow: 0 0 0 3px rgba(196, 101, 58, 0.15); }
 .cw-input::placeholder { color: #b6a996; }
 
+.cw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.cw-chip {
+  background: var(--cream);
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.cw-chip:hover { border-color: var(--clay); color: var(--clay-dark); }
+.cw-chip.selected {
+  background: var(--clay);
+  border-color: var(--clay);
+  color: var(--paper);
+}
+.cw-chip-action {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--cream);
+  font-weight: 600;
+}
+.cw-chip-action:hover {
+  background: var(--green-light);
+  border-color: var(--green-light);
+  color: var(--cream);
+}
+
 .cw-answered {
   display: flex;
   gap: 10px;

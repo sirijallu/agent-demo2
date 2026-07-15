@@ -1,18 +1,62 @@
 // Floating concierge widget that reproduces agent-demo2.py's interactive flow in the browser.
 (function () {
   const QUESTIONS = [
-    { key: "origin", label: "From", prompt: "Where are you flying from?" },
-    { key: "budget", label: "Budget", prompt: "What's your total budget? (e.g. $2000 per person, flexible)" },
-    { key: "duration", label: "Length", prompt: "How long is the trip? (e.g. 7 days)" },
-    { key: "timing", label: "When", prompt: "When are you thinking of traveling? (dates or season)" },
-    { key: "travelers", label: "Travelers", prompt: "Who's going? (e.g. 2 adults, solo, family with kids)" },
+    {
+      key: "origin",
+      label: "From",
+      prompt: "Where are you flying from?",
+      chips: ["Dallas", "New York", "San Francisco", "Chicago"],
+    },
+    {
+      key: "budget",
+      label: "Budget",
+      prompt: "What's your total budget?",
+      chips: ["$1,000 per person", "$2,000 per person", "$5,000 per person", "Flexible"],
+    },
+    {
+      key: "duration",
+      label: "Length",
+      prompt: "How long is the trip?",
+      chips: ["Long weekend (3 days)", "5 days", "7 days", "2 weeks"],
+    },
+    {
+      key: "timing",
+      label: "When",
+      prompt: "When are you thinking of traveling?",
+      chips: ["This summer", "Fall", "Winter holidays", "Flexible"],
+    },
+    {
+      key: "travelers",
+      label: "Travelers",
+      prompt: "Who's going?",
+      chips: ["Solo", "Couple", "Family with kids", "Group of friends"],
+    },
     {
       key: "interests",
       label: "Trip style",
-      prompt: "What kind of trip? (beach, adventure, culture, food, nightlife, nature, relaxation, family-friendly...)",
+      prompt: "What kind of trip? Pick any that fit, or type your own.",
+      multi: true,
+      chips: ["Beach", "Adventure", "Culture", "Food", "Nature", "Relaxation", "Nightlife", "Family-friendly"],
     },
-    { key: "climate", label: "Climate", prompt: "Preferred climate?", default: "no preference" },
-    { key: "notes", label: "Notes", prompt: "Anything else? (visa constraints, must-avoid, accessibility needs)", default: "none" },
+    {
+      key: "climate",
+      label: "Climate",
+      prompt: "Preferred climate?",
+      default: "no preference",
+      chips: ["Warm", "Mild", "Cold", "No preference"],
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      prompt: "Anything else? Ask about our policies, or add constraints.",
+      default: "none",
+      chips: [
+        "What's the cancellation policy?",
+        "How much checked baggage is included?",
+        "Does travel insurance cover adventure sports?",
+        "None",
+      ],
+    },
   ];
 
   let body;
@@ -86,16 +130,9 @@
     input.spellcheck = false;
     input.placeholder = q.default || "Type your answer and press Enter";
     block.appendChild(input);
-    body.appendChild(block);
-    scrollDown();
-    input.focus();
 
-    input.addEventListener("keydown", (evt) => {
-      if (evt.key !== "Enter" || running) return;
-      const raw = input.value.trim();
-      const value = raw || q.default || "";
-      if (!value) return;
-
+    function submitAnswer(value) {
+      if (running || !value) return;
       const row = el("div", "cw-answered");
       row.appendChild(el("span", "cw-answered-label", q.label));
       row.appendChild(el("span", "cw-answered-value", value));
@@ -109,6 +146,53 @@
       } else {
         submitTrip();
       }
+    }
+
+    if (q.chips && q.chips.length) {
+      const chipRow = el("div", "cw-chips");
+      const selected = new Set();
+
+      q.chips.forEach((chip) => {
+        const btn = el("button", "cw-chip", chip);
+        btn.type = "button";
+        btn.addEventListener("click", () => {
+          if (running) return;
+          if (q.multi) {
+            if (selected.has(chip)) {
+              selected.delete(chip);
+              btn.classList.remove("selected");
+            } else {
+              selected.add(chip);
+              btn.classList.add("selected");
+            }
+            input.value = Array.from(selected).join(", ");
+            input.focus();
+          } else {
+            submitAnswer(chip === "None" ? q.default || chip : chip);
+          }
+        });
+        chipRow.appendChild(btn);
+      });
+
+      if (q.multi) {
+        const done = el("button", "cw-chip cw-chip-action", "Continue →");
+        done.type = "button";
+        done.addEventListener("click", () => {
+          submitAnswer(input.value.trim() || q.default || "");
+        });
+        chipRow.appendChild(done);
+      }
+
+      block.appendChild(chipRow);
+    }
+
+    body.appendChild(block);
+    scrollDown();
+    input.focus();
+
+    input.addEventListener("keydown", (evt) => {
+      if (evt.key !== "Enter") return;
+      submitAnswer(input.value.trim() || q.default || "");
     });
   }
 
