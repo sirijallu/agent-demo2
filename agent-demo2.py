@@ -107,9 +107,13 @@ def main() -> None:
         "the policy terms specifically."
     )
     messages = [{"role": "user", "content": prompt}]
+    container_id = None
 
     try:
         for _ in range(MAX_TOOL_TURNS):
+            # Server-side tools (web search) may run in a container; follow-up
+            # requests in the same loop must reference it or the API 400s.
+            extra = {"container": container_id} if container_id else {}
             with client.messages.stream(
                 model=MODEL,
                 max_tokens=4096,
@@ -124,10 +128,15 @@ def main() -> None:
                 ],
                 system=system_prompt,
                 messages=messages,
+                **extra,
             ) as stream:
                 for text in stream.text_stream:
                     print(text, end="", flush=True)
                 final = stream.get_final_message()
+
+            container = getattr(final, "container", None)
+            if container is not None:
+                container_id = container.id
 
             if final.stop_reason != "tool_use":
                 print()
