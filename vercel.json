@@ -2,7 +2,12 @@
   "framework": null,
   "functions": {
     "api/plan.py": {
-      "maxDuration": 120
+      "maxDuration": 120,
+      "includeFiles": "knowledge_base/**"
+    },
+    "api/policy.py": {
+      "maxDuration": 60,
+      "includeFiles": "knowledge_base/**"
     }
   }
 }

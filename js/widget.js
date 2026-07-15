@@ -1,4 +1,5 @@
-// Floating concierge widget that reproduces agent-demo2.py's interactive flow in the browser.
+// Floating concierge widget: a welcome menu that branches into trip planning
+// (agentic RAG via /api/plan) or a quick policy lookup (/api/policy).
 (function () {
   const QUESTIONS = [
     {
@@ -48,15 +49,23 @@
     {
       key: "notes",
       label: "Notes",
-      prompt: "Anything else? Ask about our policies, or add constraints.",
+      prompt: "Anything else? Add any constraints or requests.",
       default: "none",
       chips: [
-        "What's the cancellation policy?",
-        "How much checked baggage is included?",
-        "Does travel insurance cover adventure sports?",
+        "Vegetarian-friendly food",
+        "Wheelchair accessible",
+        "Avoid long-haul flights",
         "None",
       ],
     },
+  ];
+
+  // Short chip label -> full question sent to /api/policy.
+  const POLICY_TOPICS = [
+    { label: "Cancellation & refunds", question: "What is Wanderly's cancellation and refund policy?" },
+    { label: "Baggage allowance", question: "What is Wanderly's baggage policy — carry-on, checked, and fees?" },
+    { label: "Travel insurance", question: "What does Wanderly's travel insurance cover, and what's excluded?" },
+    { label: "Changing my dates", question: "Can I change my trip dates, and what does it cost?" },
   ];
 
   let body;
@@ -88,7 +97,7 @@
     });
   }
 
-  // Minimal line-based formatter for the streamed itinerary: headings, bullets, rules.
+  // Minimal line-based formatter for streamed markdown: headings, bullets, rules.
   function renderResult(container, text) {
     container.textContent = "";
     for (const rawLine of text.split("\n")) {
@@ -116,6 +125,143 @@
       container.appendChild(node);
     }
   }
+
+  // Streams a text/plain response body into a result container.
+  async function streamInto(url, payload, result, status) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok || !res.body) {
+      let errText = await res.text().catch(() => "");
+      if (!errText || errText.trimStart().startsWith("<")) errText = "request failed";
+      if (status) status.remove();
+      body.appendChild(el("div", "cw-error", `Something went wrong (${res.status}): ${errText}`));
+      return false;
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let text = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      text += decoder.decode(value, { stream: true });
+      renderResult(result, text);
+      scrollDown();
+    }
+    if (status) status.remove();
+    return true;
+  }
+
+  function backButton(label, handler) {
+    const btn = el("button", "cw-back", label || "← Back to menu");
+    btn.type = "button";
+    btn.addEventListener("click", handler || showMenu);
+    return btn;
+  }
+
+  // ---------- Welcome menu ----------
+
+  function showMenu() {
+    running = false;
+    body.textContent = "";
+    body.appendChild(el("p", "cw-greeting", "Hi! I'm your Wanderly concierge. How can I help?"));
+
+    const menu = el("div", "cw-menu");
+
+    const plan = el("button", "cw-menu-btn");
+    plan.type = "button";
+    plan.appendChild(el("span", "cw-menu-title", "🧳  Plan a trip"));
+    plan.appendChild(el("span", "cw-menu-sub", "Destinations, itinerary & flights"));
+    plan.addEventListener("click", startTripSession);
+
+    const policies = el("button", "cw-menu-btn");
+    policies.type = "button";
+    policies.appendChild(el("span", "cw-menu-title", "📋  Check our policies"));
+    policies.appendChild(el("span", "cw-menu-sub", "Cancellation, baggage & insurance"));
+    policies.addEventListener("click", showPolicyMenu);
+
+    menu.appendChild(plan);
+    menu.appendChild(policies);
+    body.appendChild(menu);
+    scrollDown();
+  }
+
+  // ---------- Policy lookup ----------
+
+  function showPolicyMenu() {
+    running = false;
+    body.textContent = "";
+    body.appendChild(
+      el("p", "cw-greeting", "What would you like to know? Pick a topic or type your own question.")
+    );
+
+    const block = el("div", "cw-question");
+    block.appendChild(el("label", "cw-question-text", "Our policies"));
+    const input = el("input", "cw-input");
+    input.type = "text";
+    input.autocomplete = "off";
+    input.placeholder = "e.g. Can I cancel two weeks before my trip?";
+    block.appendChild(input);
+
+    const chipRow = el("div", "cw-chips");
+    POLICY_TOPICS.forEach((topic) => {
+      const btn = el("button", "cw-chip", topic.label);
+      btn.type = "button";
+      btn.addEventListener("click", () => askPolicy(topic.question));
+      chipRow.appendChild(btn);
+    });
+    block.appendChild(chipRow);
+
+    body.appendChild(block);
+    block.appendChild(backButton());
+    input.focus();
+
+    input.addEventListener("keydown", (evt) => {
+      if (evt.key !== "Enter") return;
+      const q = input.value.trim();
+      if (q) askPolicy(q);
+    });
+    scrollDown();
+  }
+
+  async function askPolicy(question) {
+    if (running) return;
+    running = true;
+    body.textContent = "";
+
+    const row = el("div", "cw-answered");
+    row.appendChild(el("span", "cw-answered-label", "You asked"));
+    row.appendChild(el("span", "cw-answered-value", question));
+    body.appendChild(row);
+
+    const status = el("div", "cw-status", "Checking our policies");
+    body.appendChild(status);
+    const result = el("div", "cw-result");
+    body.appendChild(result);
+    scrollDown();
+
+    try {
+      await streamInto("/api/policy", { question }, result, status);
+    } catch (err) {
+      status.remove();
+      body.appendChild(el("div", "cw-error", `Something went wrong: ${err.message || err}`));
+    }
+
+    running = false;
+    const actions = el("div", "cw-actions");
+    const another = el("button", "cw-again", "Ask another question");
+    another.addEventListener("click", showPolicyMenu);
+    actions.appendChild(another);
+    actions.appendChild(backButton());
+    body.appendChild(actions);
+    scrollDown();
+  }
+
+  // ---------- Trip planning ----------
 
   function askCurrentQuestion() {
     const q = QUESTIONS[step];
@@ -187,6 +333,7 @@
     }
 
     body.appendChild(block);
+    if (step === 0) block.appendChild(backButton());
     scrollDown();
     input.focus();
 
@@ -198,7 +345,7 @@
 
   async function submitTrip() {
     running = true;
-    const status = el("div", "cw-status", "Planning your trip — one moment…");
+    const status = el("div", "cw-status", "Planning your trip — one moment");
     body.appendChild(status);
     scrollDown();
 
@@ -206,55 +353,29 @@
     body.appendChild(result);
 
     try {
-      const res = await fetch("/api/plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(trip),
-      });
-
-      if (!res.ok || !res.body) {
-        let errText = await res.text().catch(() => "");
-        if (!errText || errText.trimStart().startsWith("<")) errText = "request failed";
-        status.remove();
-        body.appendChild(el("div", "cw-error", `Something went wrong (${res.status}): ${errText}`));
-        finishRun();
-        return;
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let text = "";
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        text += decoder.decode(value, { stream: true });
-        renderResult(result, text);
-        scrollDown();
-      }
-      status.remove();
+      await streamInto("/api/plan", trip, result, status);
     } catch (err) {
       status.remove();
       body.appendChild(el("div", "cw-error", `Something went wrong: ${err.message || err}`));
     }
 
-    finishRun();
-  }
-
-  function finishRun() {
     running = false;
+    const actions = el("div", "cw-actions");
     const again = el("button", "cw-again", "Plan another trip");
-    again.addEventListener("click", startSession);
-    body.appendChild(again);
+    again.addEventListener("click", startTripSession);
+    actions.appendChild(again);
+    actions.appendChild(backButton());
+    body.appendChild(actions);
     scrollDown();
   }
 
-  function startSession() {
+  function startTripSession() {
     step = 0;
     trip = {};
     running = false;
     body.textContent = "";
     body.appendChild(
-      el("p", "cw-greeting", "Hello! A few quick questions and I'll put together destinations, an itinerary, and flight options for you.")
+      el("p", "cw-greeting", "A few quick questions and I'll put together destinations, an itinerary, and flight options.")
     );
     askCurrentQuestion();
   }
@@ -265,7 +386,7 @@
     },
     start() {
       if (!body.hasChildNodes()) {
-        startSession();
+        showMenu();
       }
     },
   };
